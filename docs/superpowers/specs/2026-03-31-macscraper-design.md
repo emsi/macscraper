@@ -36,14 +36,15 @@ The application is a single window split into two panels:
 Organised into collapsible accordion sections. Contains:
 
 1. **URL Bar** (always visible, above accordion)
-   - Text input pre-filled with last used URL
+   - Text input pre-filled with last used URL (persisted in Tauri key-value store between sessions; not stored in `config.toml`)
    - "Scrape" button — triggers `scrape_url` Tauri command
    - Shows loading state during scrape
 
 2. **🖼 Content Section** (open by default)
    - **Image picker** — horizontal scrollable row of thumbnails:
      - All `<img>` elements from the scraped page (resolved to absolute URLs)
-     - First thumbnail is the OG image, pre-selected, shown with accent border
+     - Pre-selection priority: OG image if present → first image meeting `image_min_width` → first image regardless of size → "+disk" tile only (if no images found at all)
+     - Pre-selected thumbnail shown with accent border
      - Final thumbnail is a "+ disk" tile that opens a native Tauri file picker
      - Clicking any thumbnail selects it as the card image
    - **Title field** — single-line editable text, pre-filled from scraped title
@@ -58,14 +59,16 @@ Organised into collapsible accordion sections. Contains:
      - **Prompt textarea** — editable per-session; pre-filled from selected template. Editing does not auto-save back to TOML.
      - **"Generate ✨" button** — substitutes template variables in Svelte, calls `generate_summary` with the fully-resolved prompt string, writes response into the description field
      - LLM-generated response lands in the description field, which remains fully editable after generation
-     - **"Save as template…" button** — promotes the current prompt textarea content to a new named entry in `config.toml`, asking for a name
+     - **"Save as template…" button** — clicking it reveals an inline name input and "Save" confirm button directly below the button (no modal); on confirm, appends a new `[[prompt_templates]]` entry to `config.toml`
    - User can switch between Scraped and AI at any time; re-generate as many times as needed
 
 4. **🎨 Style Section** (collapsed by default)
    - **Title font** — dropdown + numeric size input (px)
    - **Body font** — dropdown + numeric size input (px)
    - Detected fonts are marked "✦ detected" and pre-selected; user can change freely
+   - Font dropdown contents (in order): detected fonts (✦), then curated Google Fonts (`Playfair Display`, `Merriweather`, `Lora`, `Roboto`, `Inter`, `Open Sans`, `Source Sans Pro`, `Nunito`, `Raleway`, `Montserrat`), then generic fallbacks (`serif`, `sans-serif`, `monospace`)
    - **Platform preset** — dropdown (see Platform Presets below)
+   - **"↕ Auto height"** — checkbox below the preset dropdown; when checked, card height grows to fit all text regardless of preset; when unchecked and text overflows, a warning badge appears on the preview
    - **"Show source attribution"** — checkbox; toggles domain line at card bottom
    - **"Save style as default"** — writes current font/size selections to `[style]` block in `config.toml`
 
@@ -74,6 +77,7 @@ Organised into collapsible accordion sections. Contains:
    - LLM model name
    - API key field (stored in OS keychain via Tauri secure store, never written to TOML)
    - "Open config file" button — opens `config.toml` in the system default editor
+   - **Note:** changing the default prompt template (`default = true`) is intentionally not exposed in the UI; the user edits `config.toml` directly via the "Open config file" button
 
 ### Right Panel — Live Preview (remaining width)
 - Header bar: shows active preset name and dimensions; "auto-updating" indicator
@@ -160,8 +164,9 @@ No external crate (avoids `article_scraper`'s webkit2gtk dependency). Implemente
 1. Collect all `<link rel=stylesheet>` hrefs (resolved to absolute) and all inline `<style>` blocks.
 2. Check stylesheet URLs for `fonts.googleapis.com`. If found, store the full URL as `google_fonts_url`. Frontend injects it as a `<link>` into the WebView so Canvas can use those fonts immediately.
 3. Fetch up to `max_stylesheets` non-Google external stylesheets. Scan CSS text with regex for `font-family` declarations on heading selectors (`h1`, `h2`) and body selectors (`body`, `p`). Extract the first font name from each.
-4. Return `DetectedFonts`. Frontend marks detected fonts with "✦ detected" in the picker and pre-selects them.
-5. **Fallback:** if no fonts detected and no saved config: `Georgia, serif` for title; `Inter, system-ui, sans-serif` for body.
+4. If steps 1–3 yield no result, inspect `style=""` attributes directly on `h1`, `h2`, and `body` elements in the HTML, extracting `font-family` values from inline style strings.
+5. Return `DetectedFonts`. Frontend marks detected fonts with "✦ detected" in the picker and pre-selects them.
+6. **Fallback:** if no fonts detected and no saved config: `Georgia, serif` for title; `Inter, system-ui, sans-serif` for body.
 
 ### Font Resolution Priority
 
@@ -197,8 +202,8 @@ Text colours: `#111111` / `#f0f0f0` (title), `#444444` / `#cccccc` (summary), `#
 | Instagram Portrait | 1080 × 1350 | Fixed |
 | Custom | user-defined width | Auto (grows to fit text) |
 
-For fixed presets: if text overflows the available height, a warning badge appears on the preview. The user can switch to auto-height or edit the text.  
-Auto-height is available as an override on any preset.
+For fixed presets: if text overflows the available height, a warning badge appears on the preview. The user can enable auto-height via the "↕ Auto height" checkbox in the Style section, or shorten the text.  
+Auto-height is available as an override on any preset via that same checkbox.
 
 ---
 
@@ -282,6 +287,8 @@ Title: {{title}}
 ```
 
 Config path is resolved via Tauri's `app_config_dir()` — no hardcoded paths.
+
+> **Naming note:** The font/style section in `config.toml` is `[style]`, not `[fonts]`. Earlier design diagrams used `[fonts]` but the TOML structure canonically uses `[style]`.
 
 ---
 
