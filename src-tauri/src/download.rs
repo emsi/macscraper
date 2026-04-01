@@ -1,6 +1,7 @@
 use base64::Engine;
 use tauri::AppHandle;
 use tauri_plugin_dialog::DialogExt;
+use image::GenericImageView;
 
 /// Save a PNG image to a user-chosen file via native save dialog.
 ///
@@ -40,4 +41,38 @@ pub async fn save_png(
         }
         None => Ok(false),
     }
+}
+
+/// Copy a PNG image to the system clipboard via the native clipboard API.
+///
+/// WebKitGTK blocks navigator.clipboard.write() for images, so this
+/// command decodes the PNG, extracts RGBA pixels, and writes them via arboard.
+///
+/// :param data: Base64-encoded PNG bytes.
+/// :return: Ok(()) on success.
+#[tauri::command]
+pub async fn copy_png_to_clipboard(data: String) -> Result<(), String> {
+    let bytes = base64::engine::general_purpose::STANDARD
+        .decode(&data)
+        .map_err(|e| format!("base64 decode: {e}"))?;
+
+    tokio::task::spawn_blocking(move || -> Result<(), String> {
+        let img = image::load_from_memory_with_format(&bytes, image::ImageFormat::Png)
+            .map_err(|e| format!("PNG decode: {e}"))?
+            .into_rgba8();
+
+        let (width, height) = img.dimensions();
+        let pixels = img.into_raw();
+
+        let mut clipboard = arboard::Clipboard::new().map_err(|e| e.to_string())?;
+        clipboard
+            .set_image(arboard::ImageData {
+                width: width as usize,
+                height: height as usize,
+                bytes: std::borrow::Cow::Owned(pixels),
+            })
+            .map_err(|e| e.to_string())
+    })
+    .await
+    .map_err(|e| e.to_string())?
 }

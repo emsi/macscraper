@@ -23,4 +23,6 @@ toml               = "0.8"
 base64             = { version = "0.22", features = ["std"] }
 keyring            = "2"
 tauri-plugin-dialog = "2.6.0"
-tauri-plugin-shell = "2.3.5"
+tauri-plugin-shell  = "2.3.5"
+arboard             = "3"
+image               = { version = "0.25", default-features = false, features = ["png"] }

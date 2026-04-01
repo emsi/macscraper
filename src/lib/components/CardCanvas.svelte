@@ -93,9 +93,8 @@
   export async function copyToClipboard(): Promise<void> {
     const offscreen = document.createElement('canvas')
     renderCard(offscreen, buildSpec())  // dpr: 1 → exact preset dimensions
-    const blob = await new Promise<Blob | null>(r => offscreen.toBlob(r, 'image/png'))
-    if (!blob) throw new Error('Failed to create PNG blob')
-    await navigator.clipboard.write([new ClipboardItem({ 'image/png': blob })])
+    const base64 = offscreen.toDataURL('image/png').replace(/^data:image\/png;base64,/, '')
+    await invoke('copy_png_to_clipboard', { data: base64 })
   }
 
   // Reactive: redraw whenever editor or config changes

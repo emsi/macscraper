@@ -30,6 +30,7 @@ pub fn run() {
             scraper::scrape_url,
             llm::generate_summary,
             download::save_png,
+            download::copy_png_to_clipboard,
         ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");
