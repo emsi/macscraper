@@ -1,0 +1,79 @@
+name: Release
+
+# Runs when a GitHub release is published (tag push triggers the release creation).
+# Builds the Tauri app for Linux, macOS, and Windows, then uploads the installers
+# to the release as downloadable assets.
+#
+# Prerequisites:
+#   - No secrets required for unsigned builds.
+#   - For macOS code signing, add APPLE_CERTIFICATE, APPLE_CERTIFICATE_PASSWORD,
+#     APPLE_SIGNING_IDENTITY, APPLE_ID, APPLE_PASSWORD, APPLE_TEAM_ID secrets.
+#   - For Windows code signing, add WINDOWS_CERTIFICATE and
+#     WINDOWS_CERTIFICATE_PASSWORD secrets.
+#
+# Note: bundle.active is false in tauri.conf.json (local dev convenience).
+# The --bundles flag below overrides that for CI builds.
+# AppImage is excluded from Linux builds — linuxdeploy downloads tools at
+# runtime and hangs in CI without network access to GitHub releases.
+
+on:
+  release:
+    types: [published]
+
+jobs:
+  build:
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - platform: ubuntu-22.04
+            bundles: deb,rpm
+          - platform: macos-latest
+            bundles: dmg
+          - platform: windows-latest
+            bundles: nsis,msi
+
+    runs-on: ${{ matrix.platform }}
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install Linux system dependencies
+        if: matrix.platform == 'ubuntu-22.04'
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y \
+            libwebkit2gtk-4.1-dev \
+            libappindicator3-dev \
+            librsvg2-dev \
+            patchelf
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+
+      - name: Setup Rust (stable)
+        uses: dtolnay/rust-toolchain@stable
+
+      - name: Cache Rust build artifacts
+        uses: swatinem/rust-cache@v2
+        with:
+          workspaces: src-tauri -> target
+
+      - name: Install frontend dependencies
+        run: npm ci
+
+      - name: Build and upload release artifacts
+        uses: tauri-apps/tauri-action@v0
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          tagName: ${{ github.ref_name }}
+          releaseName: macscraper ${{ github.ref_name }}
+          releaseBody: |
+            See the assets below to download and install macscraper ${{ github.ref_name }}.
+          releaseDraft: false
+          prerelease: false
+          args: --bundles ${{ matrix.bundles }}
