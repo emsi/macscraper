@@ -10,7 +10,11 @@
 
   export let theme: 'light' | 'dark'
 
+  // canvas: visible display element (sized to its container, no CSS scaling)
+  // renderCanvas: offscreen full-res canvas used for download/copy
   let canvas: HTMLCanvasElement
+  const renderCanvas = document.createElement('canvas')
+
   let overflows = false
   let imageEl: HTMLImageElement | null = null
   let lastImageSrc = ''
@@ -70,16 +74,32 @@
   export function draw() {
     if (!canvas) return
     const spec = buildSpec()
-    overflows = !renderCard(canvas, { ...spec, dpr: window.devicePixelRatio || 1 })
-    // Cap display size at the card's logical width so the canvas never upscales.
-    // width:100% in CSS still lets it shrink in narrow panels.
-    canvas.style.maxWidth = spec.width + 'px'
+    const dpr = window.devicePixelRatio || 1
+
+    // Render full-res card to the offscreen canvas (used for download/copy too)
+    overflows = !renderCard(renderCanvas, spec)
+
+    // Scale down to the display canvas using Canvas drawImage with
+    // imageSmoothingQuality='high' — this uses a proper box/bicubic filter,
+    // unlike CSS scaling of canvas elements in WebKitGTK which is low quality.
+    const displayW = canvas.offsetWidth || spec.width
+    const aspectRatio = renderCanvas.height / renderCanvas.width
+    const displayH = Math.round(displayW * aspectRatio)
+
+    canvas.width = Math.round(displayW * dpr)
+    canvas.height = Math.round(displayH * dpr)
+
+    const ctx = canvas.getContext('2d')!
+    ctx.imageSmoothingEnabled = true
+    ctx.imageSmoothingQuality = 'high'
+    ctx.scale(dpr, dpr)
+    ctx.drawImage(renderCanvas, 0, 0, displayW, displayH)
   }
 
   /** Save card as PNG via native file-save dialog (at full preset dimensions). */
   export async function triggerDownload(filename: string): Promise<void> {
     const offscreen = document.createElement('canvas')
-    renderCard(offscreen, buildSpec())  // dpr: 1 → exact preset dimensions
+    renderCard(offscreen, buildSpec())
     const base64 = offscreen.toDataURL('image/png').replace(/^data:image\/png;base64,/, '')
     await invoke('save_png', { data: base64, suggestedName: filename })
   }
@@ -87,7 +107,7 @@
   /** Copy card PNG to the system clipboard (at full preset dimensions). */
   export async function copyToClipboard(): Promise<void> {
     const offscreen = document.createElement('canvas')
-    renderCard(offscreen, buildSpec())  // dpr: 1 → exact preset dimensions
+    renderCard(offscreen, buildSpec())
     const base64 = offscreen.toDataURL('image/png').replace(/^data:image\/png;base64,/, '')
     await invoke('copy_png_to_clipboard', { data: base64 })
   }
