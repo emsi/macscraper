@@ -1,4 +1,5 @@
 mod config;
+mod image;
 mod store;
 mod types;
 
@@ -19,6 +20,7 @@ pub fn run() {
             config::get_config_path,
             store::get_last_url,
             store::save_last_url,
+            image::fetch_image,
         ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");
