@@ -118,7 +118,14 @@
   // Load image when selected image changes
   $: if ($editor.selectedImageSrc) loadImage($editor.selectedImageSrc)
 
-  onMount(draw)
+  onMount(() => {
+    draw()
+    // Redraw at the correct buffer size whenever the panel is resized or
+    // the window goes fullscreen — prevents the old buffer being CSS-upscaled.
+    const observer = new ResizeObserver(() => draw())
+    observer.observe(canvas)
+    return () => observer.disconnect()
+  })
 </script>
 
 <div class="canvas-wrapper">
