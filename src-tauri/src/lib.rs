@@ -1,4 +1,5 @@
 mod config;
+mod fonts;
 mod image;
 mod store;
 mod types;
