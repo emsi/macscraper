@@ -1,7 +1,6 @@
 use base64::Engine;
 use tauri::AppHandle;
 use tauri_plugin_dialog::DialogExt;
-use image::GenericImageView;
 
 /// Save a PNG image to a user-chosen file via native save dialog.
 ///

@@ -70,15 +70,7 @@
   export function draw() {
     if (!canvas) return
     const spec = buildSpec()
-    const dpr = window.devicePixelRatio || 1
-    // Render at actual display pixel density so the preview is 1:1 with screen
-    // pixels — no CSS downscaling artifacts. Fall back to full card width if the
-    // element hasn't been laid out yet (offsetWidth === 0).
-    const displayWidth = canvas.offsetWidth
-    const scaleDpr = displayWidth > 0 && displayWidth < spec.width
-      ? dpr * (displayWidth / spec.width)
-      : dpr
-    overflows = !renderCard(canvas, { ...spec, dpr: scaleDpr })
+    overflows = !renderCard(canvas, { ...spec, dpr: window.devicePixelRatio || 1 })
   }
 
   /** Save card as PNG via native file-save dialog (at full preset dimensions). */
