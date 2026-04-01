@@ -18,7 +18,7 @@ serde_json         = "1"
 tokio              = { version = "1", features = ["full"] }
 reqwest            = { version = "0.13", features = ["json", "rustls"], default-features = false }
 scraper            = "0.26"
-async-openai       = { version = "0.34", default-features = false }
+async-openai       = { version = "0.34", default-features = false, features = ["chat-completion"] }
 toml               = "0.8"
 base64             = { version = "0.22", features = ["std"] }
 keyring            = "2"
