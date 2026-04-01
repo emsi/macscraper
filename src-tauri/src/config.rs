@@ -141,9 +141,7 @@ pub fn get_api_key() -> Result<Option<String>, String> {
     let entry = keyring::Entry::new("macscraper", "api_key").map_err(|e| e.to_string())?;
     match entry.get_password() {
         Ok(k) => Ok(Some(k)),
-        Err(e) if e.to_string().contains("No entry") || e.to_string().contains("not found") => {
-            Ok(None)
-        }
+        Err(keyring::Error::NoEntry) => Ok(None),
         Err(e) => Err(e.to_string()),
     }
 }

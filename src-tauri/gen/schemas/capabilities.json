@@ -1,1 +1,1 @@
-{"default":{"identifier":"default","description":"Default capabilities","local":true,"windows":["main"],"permissions":["core:default","store:allow-get","store:allow-set","store:allow-save","store:allow-load"]}}
+{"default":{"identifier":"default","description":"Default capabilities","local":true,"windows":["main"],"permissions":["core:default","store:allow-get","store:allow-set","store:allow-save","store:allow-load","dialog:allow-open","shell:allow-open"]}}
