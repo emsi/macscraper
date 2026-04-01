@@ -68,6 +68,22 @@
     overflows = !renderCard(canvas, { ...spec, dpr: window.devicePixelRatio || 1 })
   }
 
+  /** Save card as PNG via native file-save dialog. */
+  export async function triggerDownload(filename: string): Promise<void> {
+    if (!canvas) return
+    const dataUrl = canvas.toDataURL('image/png')
+    const base64 = dataUrl.replace(/^data:image\/png;base64,/, '')
+    await invoke('save_png', { data: base64, suggestedName: filename })
+  }
+
+  /** Copy card PNG to the system clipboard. */
+  export async function copyToClipboard(): Promise<void> {
+    if (!canvas) return
+    const blob = await new Promise<Blob | null>(r => canvas.toBlob(r, 'image/png'))
+    if (!blob) throw new Error('Failed to create PNG blob')
+    await navigator.clipboard.write([new ClipboardItem({ 'image/png': blob })])
+  }
+
   // Reactive: redraw whenever editor or config changes
   $: { $editor; $appConfig; draw() }
 
@@ -75,9 +91,6 @@
   $: if ($editor.selectedImageSrc) loadImage($editor.selectedImageSrc)
 
   onMount(draw)
-
-  // Expose canvas for download
-  export { canvas }
 </script>
 
 <div class="canvas-wrapper">
@@ -89,7 +102,7 @@
 
 <style>
   .canvas-wrapper { position: relative; width: 100%; }
-  canvas { width: 100%; height: auto; display: block; border-radius: 4px; }
+  canvas { width: 100%; height: auto; display: block; border-radius: 4px; image-rendering: smooth; }
   .overflow-badge {
     position: absolute; top: 6px; right: 6px;
     background: #e07b39; color: white; font-size: 0.72rem;

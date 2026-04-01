@@ -12,19 +12,21 @@
   let lightCanvas: CardCanvas
   let darkCanvas: CardCanvas
 
-  function download(theme: 'light' | 'dark') {
+  let copyError = ''
+
+  async function download(theme: 'light' | 'dark') {
     const ref = theme === 'light' ? lightCanvas : darkCanvas
-    // Access the exposed canvas element
-    const cvs: HTMLCanvasElement = (ref as any)?.canvas
-    if (!cvs) return
-    cvs.toBlob(blob => {
-      if (!blob) return
-      const a = document.createElement('a')
-      a.href = URL.createObjectURL(blob)
-      a.download = `card-${theme}-${Date.now()}.png`
-      a.click()
-      URL.revokeObjectURL(a.href)
-    }, 'image/png')
+    await ref.triggerDownload(`card-${theme}.png`)
+  }
+
+  async function copy(theme: 'light' | 'dark') {
+    copyError = ''
+    try {
+      const ref = theme === 'light' ? lightCanvas : darkCanvas
+      await ref.copyToClipboard()
+    } catch (e) {
+      copyError = String(e)
+    }
   }
 </script>
 
@@ -36,13 +38,22 @@
     <div class="card-block">
       <span class="label">☀️ White</span>
       <CardCanvas bind:this={lightCanvas} theme="light" />
-      <button on:click={() => download('light')}>⬇ Download PNG</button>
+      <div class="btn-row">
+        <button on:click={() => download('light')}>⬇ Download PNG</button>
+        <button class="secondary" on:click={() => copy('light')}>⎘ Copy</button>
+      </div>
     </div>
     <div class="card-block">
       <span class="label">🌑 Dark</span>
       <CardCanvas bind:this={darkCanvas} theme="dark" />
-      <button on:click={() => download('dark')}>⬇ Download PNG</button>
+      <div class="btn-row">
+        <button on:click={() => download('dark')}>⬇ Download PNG</button>
+        <button class="secondary" on:click={() => copy('dark')}>⎘ Copy</button>
+      </div>
     </div>
+    {#if copyError}
+      <p class="copy-error">{copyError}</p>
+    {/if}
   </div>
 </div>
 
@@ -53,5 +64,8 @@
   .cards { flex: 1; overflow-y: auto; padding: 0.75rem; display: flex; flex-direction: column; gap: 1rem; }
   .card-block { display: flex; flex-direction: column; gap: 0.3rem; }
   .label { font-size: 0.75rem; color: #888; }
-  button { align-self: flex-start; font-size: 0.75rem; margin-top: 0.2rem; }
+  .btn-row { display: flex; gap: 0.4rem; margin-top: 0.2rem; }
+  button { font-size: 0.75rem; }
+  button.secondary { background: transparent; }
+  .copy-error { font-size: 0.75rem; color: #e07b39; }
 </style>

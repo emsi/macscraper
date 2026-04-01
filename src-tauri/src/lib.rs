@@ -1,4 +1,5 @@
 mod config;
+mod download;
 mod fonts;
 mod image;
 mod llm;
@@ -28,6 +29,7 @@ pub fn run() {
             image::fetch_image,
             scraper::scrape_url,
             llm::generate_summary,
+            download::save_png,
         ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");

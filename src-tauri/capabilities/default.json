@@ -10,6 +10,7 @@
     "store:allow-save",
     "store:allow-load",
     "dialog:allow-open",
+    "dialog:allow-save",
     "shell:allow-open"
   ]
 }
