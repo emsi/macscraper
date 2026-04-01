@@ -22,3 +22,4 @@ async-openai       = { version = "0.34", default-features = false, features = ["
 toml               = "0.8"
 base64             = { version = "0.22", features = ["std"] }
 keyring            = "2"
+tauri-plugin-dialog = "2.6.0"
