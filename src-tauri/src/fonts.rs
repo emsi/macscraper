@@ -90,17 +90,37 @@ pub async fn detect_fonts(
     max_stylesheets: usize,
 ) -> crate::types::DetectedFonts {
     let urls = collect_stylesheet_urls(doc, base_url);
-    let google_fonts_url = find_google_fonts_url(&urls);
-
     let inline_css: String = {
         let sel = Selector::parse("style").unwrap();
         doc.select(&sel).map(|el| el.text().collect::<String>()).collect::<Vec<_>>().join("\n")
     };
+    let heading_inline = extract_inline_style_font(doc, &["h1", "h2"]);
+    let body_inline = extract_inline_style_font(doc, &["body"]);
+    detect_fonts_from_parts(urls, inline_css, heading_inline, body_inline, max_stylesheets).await
+}
+
+/// Perform font detection from pre-extracted parts (stylesheet URLs, inline CSS, inline style fallbacks).
+/// Fetches up to `max_stylesheets` external (non-Google) stylesheets.
+///
+/// :param stylesheet_urls: List of resolved stylesheet URLs from the page.
+/// :param inline_css: Combined inline <style> block content.
+/// :param heading_inline: Fallback font from heading element inline style attribute.
+/// :param body_inline: Fallback font from body element inline style attribute.
+/// :param max_stylesheets: Maximum number of external stylesheets to fetch.
+/// :return: Detected font families and Google Fonts URL.
+pub async fn detect_fonts_from_parts(
+    stylesheet_urls: Vec<String>,
+    inline_css: String,
+    heading_inline: Option<String>,
+    body_inline: Option<String>,
+    max_stylesheets: usize,
+) -> crate::types::DetectedFonts {
+    let google_fonts_url = find_google_fonts_url(&stylesheet_urls);
 
     let client = reqwest::Client::builder().user_agent("macscraper/0.1").build().ok();
     let mut external_css = String::new();
     if let Some(client) = client {
-        let external_urls: Vec<_> = urls.iter()
+        let external_urls: Vec<_> = stylesheet_urls.iter()
             .filter(|u| !u.contains("fonts.googleapis.com"))
             .take(max_stylesheets)
             .collect();
@@ -117,10 +137,10 @@ pub async fn detect_fonts(
     let all_css = format!("{}\n{}", inline_css, external_css);
 
     let heading_family = extract_font_for_selectors(&all_css, &["h1", "h2"])
-        .or_else(|| extract_inline_style_font(doc, &["h1", "h2"]));
+        .or(heading_inline);
 
     let body_family = extract_font_for_selectors(&all_css, &["body", "p"])
-        .or_else(|| extract_inline_style_font(doc, &["body"]));
+        .or(body_inline);
 
     crate::types::DetectedFonts { heading_family, body_family, google_fonts_url }
 }
