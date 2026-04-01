@@ -65,7 +65,7 @@
       showAttribution: $editor.showAttribution,
       theme,
     }
-    overflows = !renderCard(canvas, spec)
+    overflows = !renderCard(canvas, { ...spec, dpr: window.devicePixelRatio || 1 })
   }
 
   // Reactive: redraw whenever editor or config changes

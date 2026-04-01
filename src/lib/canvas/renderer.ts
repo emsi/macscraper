@@ -38,6 +38,7 @@ export interface CardSpec {
   autoHeight: boolean
   showAttribution: boolean
   theme: 'light' | 'dark'
+  dpr?: number  // devicePixelRatio for crisp HiDPI rendering; defaults to 1
 }
 
 /**
@@ -109,6 +110,7 @@ export function computeCardHeight(p: HeightParams): number {
  * :return: Whether the content fits within the preset height.
  */
 export function renderCard(canvas: HTMLCanvasElement, spec: CardSpec): boolean {
+  const dpr = spec.dpr ?? 1
   const colors = spec.theme === 'dark' ? DARK_COLORS : LIGHT_COLORS
   const ctx = canvas.getContext('2d')!
   const PAD = 48
@@ -118,12 +120,13 @@ export function renderCard(canvas: HTMLCanvasElement, spec: CardSpec): boolean {
   const ATTR_HEIGHT = spec.showAttribution ? 32 : 0
   const textWidth = spec.width - PAD * 2
 
-  // Measure text
+  // Measure text at logical (1x) scale
+  ctx.save()
   ctx.font = `bold ${spec.titleSize}px "${spec.titleFont}", serif`
   const titleLines = wrapText(ctx, spec.title, textWidth)
-
   ctx.font = `${spec.bodySize}px "${spec.bodyFont}", sans-serif`
   const summaryLines = wrapText(ctx, spec.summary, textWidth)
+  ctx.restore()
 
   const imageHeight = Math.round(spec.width * IMAGE_RATIO)
   const contentHeight = computeCardHeight({
@@ -145,8 +148,15 @@ export function renderCard(canvas: HTMLCanvasElement, spec: CardSpec): boolean {
     ? contentHeight
     : spec.presetHeight
 
-  canvas.width = spec.width
-  canvas.height = finalHeight
+  // Scale canvas buffer by DPR for crisp HiDPI rendering.
+  // CSS width: 100% / height: auto ensures the element stays at logical size.
+  canvas.width = Math.round(spec.width * dpr)
+  canvas.height = Math.round(finalHeight * dpr)
+  ctx.scale(dpr, dpr)
+
+  // High-quality image smoothing
+  ctx.imageSmoothingEnabled = true
+  ctx.imageSmoothingQuality = 'high'
 
   // Background
   ctx.fillStyle = colors.background
