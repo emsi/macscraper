@@ -9,7 +9,7 @@
   <summary>🖼 Content</summary>
   <div class="section-body">
     {#if $scraped}
-      <label class="field-label">IMAGE</label>
+      <span class="field-label">IMAGE</span>
       <ImagePicker />
 
       <label class="field-label" for="title-input">TITLE</label>

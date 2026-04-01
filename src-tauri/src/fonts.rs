@@ -84,6 +84,7 @@ fn extract_font_from_style_attr(style: &str) -> Option<String> {
 /// Perform full font detection for a document. Fetches up to `max_stylesheets`
 /// external (non-Google) stylesheets and inspects inline <style> blocks.
 /// Falls back to inspecting inline style="" attributes on heading/body elements.
+#[allow(dead_code)]
 pub async fn detect_fonts(
     doc: &Html,
     base_url: &str,

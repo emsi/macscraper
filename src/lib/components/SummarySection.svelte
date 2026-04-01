@@ -74,8 +74,8 @@
     </div>
 
     {#if $editor.summarySource === 'ai'}
-      <label class="field-label">PROMPT TEMPLATE</label>
-      <select value={$editor.activeTemplateName} on:change={e => selectTemplate(e.currentTarget.value)}>
+      <label class="field-label" for="template-select">PROMPT TEMPLATE</label>
+      <select id="template-select" value={$editor.activeTemplateName} on:change={e => selectTemplate(e.currentTarget.value)}>
         {#each templates as tpl}
           <option value={tpl.name}>{tpl.name}</option>
         {/each}

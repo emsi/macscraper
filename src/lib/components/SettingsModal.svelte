@@ -26,7 +26,7 @@
 </script>
 
 <!-- svelte-ignore a11y-click-events-have-key-events -->
-<div class="overlay" on:click|self={() => dispatch('close')}>
+<div class="overlay" role="presentation" on:click|self={() => dispatch('close')}>
   <div class="modal">
     <h2>Settings</h2>
 

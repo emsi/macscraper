@@ -69,8 +69,9 @@
       />
     </div>
 
-    <label class="field-label">PLATFORM PRESET</label>
+    <label class="field-label" for="preset-select">PLATFORM PRESET</label>
     <select
+      id="preset-select"
       value={$editor.preset}
       on:change={e => editor.update(s => ({ ...s, preset: e.currentTarget.value as PresetName }))}
     >
@@ -80,8 +81,9 @@
     </select>
 
     {#if $editor.preset === 'Custom'}
-      <label class="field-label">CUSTOM WIDTH (px)</label>
+      <label class="field-label" for="custom-width">CUSTOM WIDTH (px)</label>
       <input
+        id="custom-width"
         type="number" min="400" max="3000"
         value={$editor.customWidth}
         on:input={e => editor.update(s => ({ ...s, customWidth: +e.currentTarget.value }))}
