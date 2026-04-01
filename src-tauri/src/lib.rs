@@ -1,4 +1,5 @@
 mod config;
+mod store;
 mod types;
 
 pub use types::*;
@@ -16,6 +17,8 @@ pub fn run() {
             config::get_api_key,
             config::set_api_key,
             config::get_config_path,
+            store::get_last_url,
+            store::save_last_url,
         ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");
