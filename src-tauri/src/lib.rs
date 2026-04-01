@@ -1,4 +1,6 @@
+mod config;
 mod types;
+
 pub use types::*;
 
 /// Entry point for the Tauri application.
@@ -8,7 +10,13 @@ pub use types::*;
 pub fn run() {
     tauri::Builder::default()
         .plugin(tauri_plugin_store::Builder::default().build())
-        .invoke_handler(tauri::generate_handler![])
+        .invoke_handler(tauri::generate_handler![
+            config::load_config,
+            config::save_config,
+            config::get_api_key,
+            config::set_api_key,
+            config::get_config_path,
+        ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");
 }
