@@ -71,6 +71,9 @@
     if (!canvas) return
     const spec = buildSpec()
     overflows = !renderCard(canvas, { ...spec, dpr: window.devicePixelRatio || 1 })
+    // Cap display size at the card's logical width so the canvas never upscales.
+    // width:100% in CSS still lets it shrink in narrow panels.
+    canvas.style.maxWidth = spec.width + 'px'
   }
 
   /** Save card as PNG via native file-save dialog (at full preset dimensions). */
