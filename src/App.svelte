@@ -1,6 +1,7 @@
 <!-- src/App.svelte -->
 <script lang="ts">
   import { onMount } from 'svelte'
+  import { invoke } from '@tauri-apps/api/core'
   import { loadAppConfig } from './lib/stores/config'
   import UrlBar from './lib/components/UrlBar.svelte'
   import ContentSection from './lib/components/ContentSection.svelte'
@@ -10,8 +11,33 @@
   import SettingsModal from './lib/components/SettingsModal.svelte'
 
   let showSettings = false
+  let editorWidth = 42   // percentage of workspace width
+  let dragging = false
+  let workspace: HTMLDivElement
 
-  onMount(() => loadAppConfig())
+  onMount(async () => {
+    loadAppConfig()
+    const saved = await invoke<number | null>('get_split_ratio').catch(() => null)
+    if (saved !== null && saved !== undefined) editorWidth = saved
+  })
+
+  function onDividerMouseDown(e: MouseEvent) {
+    dragging = true
+    e.preventDefault()
+  }
+
+  function onMouseMove(e: MouseEvent) {
+    if (!dragging || !workspace) return
+    const rect = workspace.getBoundingClientRect()
+    const x = e.clientX - rect.left
+    editorWidth = Math.max(20, Math.min(70, (x / rect.width) * 100))
+  }
+
+  async function onMouseUp() {
+    if (!dragging) return
+    dragging = false
+    await invoke('save_split_ratio', { ratio: editorWidth }).catch(() => {})
+  }
 </script>
 
 <div class="app">
@@ -20,9 +46,17 @@
     <button class="settings-btn" on:click={() => showSettings = true}>⚙</button>
   </header>
 
-  <div class="workspace">
+  <!-- svelte-ignore a11y_no_static_element_interactions -->
+  <div
+    class="workspace"
+    class:dragging
+    bind:this={workspace}
+    on:mousemove={onMouseMove}
+    on:mouseup={onMouseUp}
+    on:mouseleave={onMouseUp}
+  >
     <!-- Left: editor panel -->
-    <div class="editor-panel">
+    <div class="editor-panel" style="width: {editorWidth}%">
       <UrlBar />
       <div class="accordion">
         <ContentSection />
@@ -30,6 +64,10 @@
         <StyleSection />
       </div>
     </div>
+
+    <!-- Drag handle -->
+    <!-- svelte-ignore a11y_no_static_element_interactions -->
+    <div class="divider" on:mousedown={onDividerMouseDown}></div>
 
     <!-- Right: live preview -->
     <div class="preview-panel">
@@ -60,7 +98,13 @@
   .app-name { font-weight: 600; }
   .settings-btn { background: none; border: none; font-size: 1.1rem; }
   .workspace { display: flex; flex: 1; overflow: hidden; }
-  .editor-panel { width: 42%; border-right: 1px solid #333; display: flex; flex-direction: column; overflow: hidden; }
+  .workspace.dragging { cursor: col-resize; user-select: none; }
+  .editor-panel { flex-shrink: 0; display: flex; flex-direction: column; overflow: hidden; }
+  .divider {
+    width: 5px; flex-shrink: 0; background: #2a2a3e; cursor: col-resize;
+    transition: background 0.15s;
+  }
+  .divider:hover, .workspace.dragging .divider { background: #4a9eff; }
   .accordion { flex: 1; overflow-y: auto; }
-  .preview-panel { flex: 1; overflow-y: auto; }
+  .preview-panel { flex: 1; overflow-y: auto; min-width: 0; }
 </style>

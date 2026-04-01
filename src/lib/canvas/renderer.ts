@@ -162,19 +162,25 @@ export function renderCard(canvas: HTMLCanvasElement, spec: CardSpec): boolean {
   ctx.fillStyle = colors.background
   ctx.fillRect(0, 0, spec.width, finalHeight)
 
-  // Image zone (cover-fit, centred crop)
+  // Image zone (contain-fit, centred — no cropping)
   if (spec.image) {
     const srcRatio = spec.image.naturalWidth / spec.image.naturalHeight
-    const dstRatio = spec.width / imageHeight
-    let sx = 0, sy = 0, sw = spec.image.naturalWidth, sh = spec.image.naturalHeight
-    if (srcRatio > dstRatio) {
-      sw = Math.round(sh * dstRatio)
-      sx = Math.round((spec.image.naturalWidth - sw) / 2)
+    const zoneRatio = spec.width / imageHeight
+    let dw: number, dh: number, dx: number, dy: number
+    if (srcRatio > zoneRatio) {
+      // image wider than zone → fit to zone width, centre vertically
+      dw = spec.width
+      dh = Math.round(spec.width / srcRatio)
+      dx = 0
+      dy = Math.round((imageHeight - dh) / 2)
     } else {
-      sh = Math.round(sw / dstRatio)
-      sy = Math.round((spec.image.naturalHeight - sh) / 2)
+      // image taller than zone → fit to zone height, centre horizontally
+      dh = imageHeight
+      dw = Math.round(imageHeight * srcRatio)
+      dx = Math.round((spec.width - dw) / 2)
+      dy = 0
     }
-    ctx.drawImage(spec.image, sx, sy, sw, sh, 0, 0, spec.width, imageHeight)
+    ctx.drawImage(spec.image, dx, dy, dw, dh)
   }
 
   // Gradient fade at image/text boundary
