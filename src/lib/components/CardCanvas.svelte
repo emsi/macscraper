@@ -48,9 +48,9 @@
     draw()
   }
 
-  export function draw() {
-    if (!canvas) return
-    const spec: CardSpec = {
+  /** Build the card spec from current editor state. */
+  function buildSpec(): CardSpec {
+    return {
       image: imageEl,
       title: $editor.title,
       summary: $editor.description,
@@ -65,21 +65,35 @@
       showAttribution: $editor.showAttribution,
       theme,
     }
-    overflows = !renderCard(canvas, { ...spec, dpr: window.devicePixelRatio || 1 })
   }
 
-  /** Save card as PNG via native file-save dialog. */
-  export async function triggerDownload(filename: string): Promise<void> {
+  export function draw() {
     if (!canvas) return
-    const dataUrl = canvas.toDataURL('image/png')
-    const base64 = dataUrl.replace(/^data:image\/png;base64,/, '')
+    const spec = buildSpec()
+    const dpr = window.devicePixelRatio || 1
+    // Render at actual display pixel density so the preview is 1:1 with screen
+    // pixels — no CSS downscaling artifacts. Fall back to full card width if the
+    // element hasn't been laid out yet (offsetWidth === 0).
+    const displayWidth = canvas.offsetWidth
+    const scaleDpr = displayWidth > 0 && displayWidth < spec.width
+      ? dpr * (displayWidth / spec.width)
+      : dpr
+    overflows = !renderCard(canvas, { ...spec, dpr: scaleDpr })
+  }
+
+  /** Save card as PNG via native file-save dialog (at full preset dimensions). */
+  export async function triggerDownload(filename: string): Promise<void> {
+    const offscreen = document.createElement('canvas')
+    renderCard(offscreen, buildSpec())  // dpr: 1 → exact preset dimensions
+    const base64 = offscreen.toDataURL('image/png').replace(/^data:image\/png;base64,/, '')
     await invoke('save_png', { data: base64, suggestedName: filename })
   }
 
-  /** Copy card PNG to the system clipboard. */
+  /** Copy card PNG to the system clipboard (at full preset dimensions). */
   export async function copyToClipboard(): Promise<void> {
-    if (!canvas) return
-    const blob = await new Promise<Blob | null>(r => canvas.toBlob(r, 'image/png'))
+    const offscreen = document.createElement('canvas')
+    renderCard(offscreen, buildSpec())  // dpr: 1 → exact preset dimensions
+    const blob = await new Promise<Blob | null>(r => offscreen.toBlob(r, 'image/png'))
     if (!blob) throw new Error('Failed to create PNG blob')
     await navigator.clipboard.write([new ClipboardItem({ 'image/png': blob })])
   }
@@ -102,7 +116,7 @@
 
 <style>
   .canvas-wrapper { position: relative; width: 100%; }
-  canvas { width: 100%; height: auto; display: block; border-radius: 4px; image-rendering: smooth; }
+  canvas { width: 100%; height: auto; display: block; border-radius: 4px; }
   .overflow-badge {
     position: absolute; top: 6px; right: 6px;
     background: #e07b39; color: white; font-size: 0.72rem;
