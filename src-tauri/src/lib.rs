@@ -1,3 +1,6 @@
+mod types;
+pub use types::*;
+
 /// Entry point for the Tauri application.
 ///
 /// Initializes the Tauri builder with default plugins, registers command handlers,
