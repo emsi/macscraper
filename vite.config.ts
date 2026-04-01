@@ -11,6 +11,8 @@ export default defineConfig({
     strictPort: true,
   },
   envPrefix: ['VITE_', 'TAURI_ENV_*'],
+  // Use relative paths so assets load correctly via Tauri's custom protocol
+  base: './',
   build: {
     // Tauri uses Chromium on Linux and WebKit on macOS and Windows
     target: process.env.TAURI_ENV_PLATFORM == 'windows' ? 'chrome105' : 'safari13',
